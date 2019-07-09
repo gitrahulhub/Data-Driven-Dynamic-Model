@@ -5,12 +5,13 @@ Created on Mon Jun 10 13:52:05 2019
 @author: rrameshbabu6
 """
 from matplotlib import pyplot as plt
-from prepare_data import prepare_data
+from prepare_data import make_data_supervised
 import pickle as p
 import numpy as np
 import csv
 
-file = "train_neurons_xy.p"
+experiment_name = 'experiments/train_epochs_nodes'
+file = experiment_name + '/train_epochs_nodes.p'
 test_data = p.load( open( file, "rb" ) )
 # test_data = {'configs':configs, 'data':data, 'scaler':scaler, 'actual outputs':outputs_list, 'histories':histories_set_list}
 configs = test_data['configs']
@@ -28,7 +29,7 @@ for i in range(len(configs)):
     config = configs[i]
     n_input = config[0]    
     print('n_input: ',n_input)
-    _, test_out = prepare_data(test_samples, n_input)
+    _, test_out = make_data_supervised(test_samples, n_input)
     actual_output.append(test_out)
     
     # calculate rsme
@@ -62,66 +63,68 @@ for j in range(len(rmse_set_list)):
     predictions_set = unscaled_predictions_set_list[j]
     mean_prediction = np.mean([i for i in predictions_set], axis = 0)
     mean_predictions.append(mean_prediction)
-    
-
-config_index = 0
-run_index = 0
-experiment_name = 'experiments/train_neurons_xy'
-
 
 for i in range(len(configs)):
     # lat and lon
     plt.figure(1)
-    plt.plot(mean_predictions[config_index][:,0],mean_predictions[config_index][:,1],'r')
-    plt.plot(actual_output[config_index][:,0],actual_output[config_index][:,1],'b')
+    plt.plot(mean_predictions[i][:,0],mean_predictions[i][:,1],'r')
+    plt.plot(actual_output[i][:,0],actual_output[i][:,1],'b')
     plt.title('x and y')
     plt.savefig(experiment_name + '/latlon'+str(i)+'.png')
+    plt.clf()
     
     plt.figure(2)
     # lat (meters)
-    ax4 = plt.subplot(2,4,1)
-    ax4.plot(mean_predictions[config_index][:,0],'r')
-    ax4.plot(actual_output[config_index][:,0],'b')
-    ax4.title.set_text('x')
+    ax1 = plt.subplot(2,4,1)
+    ax1.plot(mean_predictions[i][:,0],'r')
+    ax1.plot(actual_output[i][:,0],'b')
+    ax1.title.set_text('x')
     # lon (meters)
-    ax5 = plt.subplot(2,4,2)
-    ax5.plot(mean_predictions[config_index][:,1],'r')
-    ax5.plot(actual_output[config_index][:,1],'b')
-    ax5.title.set_text('y')
+    ax2 = plt.subplot(2,4,2)
+    ax2.plot(mean_predictions[i][:,1],'r')
+    ax2.plot(actual_output[i][:,1],'b')
+    ax2.title.set_text('y')
     # yaw (radians)
-    ax2 = plt.subplot(2,4,3)
-    ax2.plot(mean_predictions[config_index][:,2],'r')
-    ax2.plot(actual_output[config_index][:,2],'b')
-    ax2.title.set_text('yaw')
+    ax3 = plt.subplot(2,4,3)
+    ax3.plot(mean_predictions[i][:,2],'r')
+    ax3.plot(actual_output[i][:,2],'b')
+    ax3.title.set_text('yaw')
     # v_north (m/s)?
-    ax3 = plt.subplot(2,4,4)
-    ax3.plot(mean_predictions[config_index][:,3],'r')
-    ax3.plot(actual_output[config_index][:,3],'b')
-    ax3.title.set_text('v_north')
+    ax4 = plt.subplot(2,4,4)
+    ax4.plot(mean_predictions[i][:,3],'r')
+    ax4.plot(actual_output[i][:,3],'b')
+    ax4.title.set_text('v_north')
     # v_east (m/s)?
-    ax4 = plt.subplot(2,4,5)
-    ax4.plot(mean_predictions[config_index][:,4],'r')
-    ax4.plot(actual_output[config_index][:,4],'b')
-    ax4.title.set_text('v_east')
+    ax5 = plt.subplot(2,4,5)
+    ax5.plot(mean_predictions[i][:,4],'r')
+    ax5.plot(actual_output[i][:,4],'b')
+    ax5.title.set_text('v_east')
     # angular_velocity (rad/s)
-    ax5 = plt.subplot(2,4,6)
-    ax5.plot(mean_predictions[config_index][:,5],'r')
-    ax5.plot(actual_output[config_index][:,5],'b')
-    ax5.title.set_text('angular_velocity')
+    ax6 = plt.subplot(2,4,6)
+    ax6.plot(mean_predictions[i][:,5],'r')
+    ax6.plot(actual_output[i][:,5],'b')
+    ax6.title.set_text('angular_velocity')
     plt.savefig(experiment_name + '/others'+str(i)+'.png')
+    
+    ax1.clear()
+    ax2.clear()
+    ax3.clear()
+    ax4.clear()
+    ax5.clear()
+    ax6.clear()
     
     # loss
     plt.figure(3)
-    plt.plot(mean_losses[config_index])
+    plt.plot(mean_losses[i])
     plt.title('loss')
     plt.savefig(experiment_name + '/loss'+str(i)+'.png')
-
+    plt.clf()
 
 print(configs)
 print(mean_rmses)
 
 
-with open(experiment_name + '/results.csv', 'w') as fp:
+with open(experiment_name + '/results.csv', 'w', newline = '') as fp:
     for i in range(len(configs)):
         wr = csv.writer(fp, dialect='excel')
         wr.writerow(list(configs[i])+list(mean_rmses[i]))

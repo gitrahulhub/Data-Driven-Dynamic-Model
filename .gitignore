@@ -1,0 +1,3 @@
+*.json
+/experiments/*
+/__pycache__/*

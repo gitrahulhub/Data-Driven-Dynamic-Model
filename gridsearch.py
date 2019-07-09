@@ -13,7 +13,7 @@ from keras.initializers import glorot_uniform
 from keras.utils import CustomObjectScope
 from keras.models import model_from_json
 import itertools
-# import time
+import time
 from prepare_data import make_data_supervised
 import tensorflow as tf
 tf.logging.set_verbosity(tf.logging.ERROR)
@@ -64,8 +64,8 @@ class GridSearch:
         model, history = self.model_fit(train_scaled_in, train_scaled_out, cfg)
     	# make predictions
         predictions = None
-        if test_scaled_in != None:
-            predictions = model.predict(test_scaled_in.reshape(-1,train_scaled_in.shape[1]*n_input)) 
+        if test_scaled_in is not None:
+            predictions = model.predict(test_scaled_in) 
         model.reset_states()
         return predictions, history.history, model
     
@@ -80,7 +80,7 @@ class GridSearch:
         n_input, _, _, _, _, _, _ = config 
         
         # if this is a time_series problem, prepare data accordingly
-        if self.time_series and test_scaled_in != None:
+        if self.time_series and test_scaled_in is not None:
             train_scaled_in, train_scaled_out = make_data_supervised(train_scaled_in, n_input)
             test_scaled_in, test_scaled_out = make_data_supervised(test_scaled_in, n_input)
             
@@ -114,13 +114,13 @@ class GridSearch:
         data = list()
         histories_list = list()
         for cfg in self.configs:
-            # start = time.time()
+            start = time.time()
             predictions, histories = self.repeat_evaluate(train_scaled_in, 
                         train_scaled_out, test_scaled_in, test_scaled_out, cfg) 
             data.append(predictions)
             histories_list.append(histories)
-            # elapsed = time.time() - start
-            # print('training time: ',elapsed)
+            elapsed = time.time() - start
+            print('training time: ',elapsed)
         return data, histories_list
     
     def dumpModel(self, model, name):
