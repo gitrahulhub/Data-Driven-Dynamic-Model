@@ -13,7 +13,7 @@ from keras.initializers import glorot_uniform
 from keras.utils import CustomObjectScope
 from keras.models import model_from_json
 import itertools
-import time
+# import time
 from prepare_data import make_data_supervised
 import tensorflow as tf
 tf.logging.set_verbosity(tf.logging.ERROR)
@@ -21,36 +21,45 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 class GridSearch:
     def __init__(self,n_input = [1], n_nodes = [100], n_epochs = [100], 
                  n_batch = [10], n_hidden_layers = [0],
-                 dropout = [1], activation = ['relu'], time_series = False):
+                 dropout = [1], activation_in = ['relu'], loss_fcn = ['mse'],
+                 optimizer = ['adam'], activation_out = ['relu'], 
+                 time_series = False, output_layer = True):
         self.n_input = n_input
         self.n_nodes = n_nodes
         self.n_epochs = n_epochs
         self.n_batch = n_batch
         self.n_hidden_layers = n_hidden_layers
         self.dropout = dropout
-        self.activation = activation
+        self.activation_in = activation_in
+        self.activation_out = activation_out
+        self.loss_fcn = loss_fcn
+        self.optimizer = optimizer
         # generate initial configs
         self.generate_configs()
         # other variables
         self.time_series = time_series
+        self.output_layer = output_layer
         self.models = list()
             
     # fit a model to training data
     def model_fit(self,scaled_train_in,scaled_train_out, config):
         # unpack config
-        n_input, n_nodes, n_epochs, n_batch, n_hidden_layers, dropout, act  = config
+        (n_input, n_nodes, n_epochs, n_batch, n_hidden_layers, dropout, 
+         act_in, act_out, loss_fcn, optimizer)  = config
         
     	# define model
         model = Sequential()
         # input layer
-        model.add(Dense(n_nodes, activation=act, input_dim=scaled_train_in.shape[1]))
+        model.add(Dense(n_nodes, activation = act_in, input_dim=scaled_train_in.shape[1]))
         # hidden layers
         for i in range(n_hidden_layers):
-            model.add(Dense(n_nodes, activation=act))
+            model.add(Dense(n_nodes, activation = act_in))
             model.add(Dropout(0.5))
         # output layer
-        model.add(Dense(scaled_train_out.shape[1]))
-        model.compile(loss='mse', optimizer='adam')
+        if self.output_layer:
+            model.add(Dense(scaled_train_out.shape[1], activation = act_out))
+        # compile model
+        model.compile(loss = loss_fcn, optimizer = optimizer)
         
         # fit model
         history = model.fit(scaled_train_in, scaled_train_out, epochs=n_epochs, batch_size=n_batch, verbose=0)
@@ -59,36 +68,31 @@ class GridSearch:
     def validate(self,train_scaled_in, train_scaled_out, test_scaled_in,
                                 test_scaled_out, cfg):
         # unpack config
-        n_input, _, _, _, _, _, _ = cfg 
+        n_input,  _, _, _, _, _, _, _, _, _ = cfg 
     	# fit model
         model, history = self.model_fit(train_scaled_in, train_scaled_out, cfg)
     	# make predictions
         predictions = None
-        if test_scaled_in is not None:
-            predictions = model.predict(test_scaled_in) 
+        if test_scaled_in != None:
+            predictions = model.predict(test_scaled_in.reshape(-1,train_scaled_in.shape[1]*n_input)) 
         model.reset_states()
         return predictions, history.history, model
     
     # create a list of configs to try
     def generate_configs(self):
+        
         self.configs = list(itertools.product(self.n_input,self.n_nodes,self.n_epochs,self.n_batch,
-                                         self.n_hidden_layers,self.dropout,self.activation))
-
+                                         self.n_hidden_layers,self.dropout, self.activation_in, 
+                                         self.activation_out, self.loss_fcn, self.optimizer))
     
     def repeat_evaluate(self,train_scaled_in, 
                         train_scaled_out, test_scaled_in, test_scaled_out, config, n_repeats=1):
-        n_input, _, _, _, _, _, _ = config 
+        n_input, _, _, _, _, _, _, _, _, _ = config 
         
         # if this is a time_series problem, prepare data accordingly
-        if self.time_series and test_scaled_in is not None:
+        if self.time_series and test_scaled_in != None:
             train_scaled_in, train_scaled_out = make_data_supervised(train_scaled_in, n_input)
             test_scaled_in, test_scaled_out = make_data_supervised(test_scaled_in, n_input)
-            
-        print('number of observations: ', config[0])
-        print('number of nodes: ', config[1])
-        print('number of epochs: ', config[2])
-        print('number of hidden layers: ', config[4])
-        print('number of batches: ', config[3])
         
     	# fit and evaluate the model n times
         predictions_list = list()
@@ -114,13 +118,14 @@ class GridSearch:
         data = list()
         histories_list = list()
         for cfg in self.configs:
-            start = time.time()
+            # start = time.time()
+            print('configuration: ',cfg)
             predictions, histories = self.repeat_evaluate(train_scaled_in, 
                         train_scaled_out, test_scaled_in, test_scaled_out, cfg) 
             data.append(predictions)
             histories_list.append(histories)
-            elapsed = time.time() - start
-            print('training time: ',elapsed)
+            # elapsed = time.time() - start
+            # print('training time: ',elapsed)
         return data, histories_list
     
     def dumpModel(self, model, name):

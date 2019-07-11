@@ -10,9 +10,11 @@ import pickle as p
 import numpy as np
 import csv
 
-experiment_name = 'experiments/train_epochs_nodes'
-file = experiment_name + '/train_epochs_nodes.p'
-test_data = p.load( open( file, "rb" ) )
+experiment_name = 'train_hidden_layers_dropout'
+file_path = 'experiments/'+experiment_name
+results_file = file_path + '/' + experiment_name + '.p'
+
+test_data = p.load( open(results_file, "rb" ) )
 # test_data = {'configs':configs, 'data':data, 'scaler':scaler, 'actual outputs':outputs_list, 'histories':histories_set_list}
 configs = test_data['configs']
 data = test_data['data']
@@ -70,7 +72,7 @@ for i in range(len(configs)):
     plt.plot(mean_predictions[i][:,0],mean_predictions[i][:,1],'r')
     plt.plot(actual_output[i][:,0],actual_output[i][:,1],'b')
     plt.title('x and y')
-    plt.savefig(experiment_name + '/latlon'+str(i)+'.png')
+    plt.savefig(file_path + '/latlon'+str(i)+'.png')
     plt.clf()
     
     plt.figure(2)
@@ -104,7 +106,7 @@ for i in range(len(configs)):
     ax6.plot(mean_predictions[i][:,5],'r')
     ax6.plot(actual_output[i][:,5],'b')
     ax6.title.set_text('angular_velocity')
-    plt.savefig(experiment_name + '/others'+str(i)+'.png')
+    plt.savefig(file_path + '/others'+str(i)+'.png')
     
     ax1.clear()
     ax2.clear()
@@ -117,14 +119,14 @@ for i in range(len(configs)):
     plt.figure(3)
     plt.plot(mean_losses[i])
     plt.title('loss')
-    plt.savefig(experiment_name + '/loss'+str(i)+'.png')
+    plt.savefig(file_path + '/loss'+str(i)+'.png')
     plt.clf()
 
 print(configs)
 print(mean_rmses)
 
 
-with open(experiment_name + '/results.csv', 'w', newline = '') as fp:
+with open(file_path + '/' + experiment_name + '_results.csv', 'w', newline = '') as fp:
     for i in range(len(configs)):
         wr = csv.writer(fp, dialect='excel')
         wr.writerow(list(configs[i])+list(mean_rmses[i]))
